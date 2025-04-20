@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Therapy Chat</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-green-50 min-h-screen flex items-center justify-center px-4">
+  <div class="w-full max-w-2xl bg-white rounded-xl shadow-lg p-6 space-y-4">
+    <h2 class="text-2xl font-bold text-green-700 text-center">🌱 AI Therapy Chat</h2>
+
+    <!-- Chat Display -->
+    <div id="chatBox" class="space-y-3 max-h-[400px] overflow-y-auto pr-2"></div>
+
+    <!-- User Input -->
+    <div id="startSection">
+      <textarea id="userInput" rows="3" placeholder="Tell me what's on your mind..." 
+        class="w-full border border-green-300 rounded-lg p-3 focus:ring-2 focus:ring-green-400 focus:outline-none"></textarea>
+      <button onclick="startTherapy()" 
+        class="bg-green-600 text-white w-full py-2 rounded-lg mt-3 font-semibold hover:bg-green-700 transition">
+        Start Conversation
+      </button>
+    </div>
+
+    <!-- MCQs Section -->
+    <div id="chatSection" class="hidden">
+      <div id="questionBox" class="text-lg font-semibold text-green-800"></div>
+      <ul id="optionsList" class="space-y-2 mt-2"></ul>
+      <div id="suggestionBox" class="hidden mt-4 text-green-900 font-medium"></div>
+      <button id="nextBtn" onclick="nextQuestion()" 
+        class="hidden bg-green-600 text-white font-semibold px-6 py-2 rounded-lg hover:bg-green-700 transition-all mt-3">
+        Next
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const questions = [
+      {
+        question: "What is bothering you the most today?",
+        options: [
+          { text: "Stress and anxiety", suggestion: "It's okay to feel this way. Deep breaths can really help ground you." },
+          { text: "Work or studies", suggestion: "Deadlines can be hard. Try breaking them into smaller tasks." },
+          { text: "Loneliness", suggestion: "You are not alone. Reaching out is a brave step." },
+          { text: "Health concerns", suggestion: "Your health matters. Take one small healthy step today." }
+        ]
+      },
+      {
+        question: "How often do you feel low or tired?",
+        options: [
+          { text: "Every day", suggestion: "You deserve rest and care, even when life is busy." },
+          { text: "Sometimes", suggestion: "Noticing your feelings is the first step toward healing." },
+          { text: "Rarely", suggestion: "That’s good. Keep nurturing your mental peace." },
+          { text: "Not sure", suggestion: "It’s okay. Emotions aren’t always clear. You're doing your best." }
+        ]
+      },
+      {
+        question: "What thought repeats in your mind?",
+        options: [
+          { text: "Fear of failure", suggestion: "Failure is part of growth. You’re learning and evolving." },
+          { text: "I’m not good enough", suggestion: "You matter. Your worth isn’t based on achievements." },
+          { text: "People don’t understand me", suggestion: "Being misunderstood hurts. Let’s try to express slowly." },
+          { text: "Why can’t I be happy?", suggestion: "Happiness comes in waves. Small joys count too." }
+        ]
+      }
+    ];
+
+    let currentQ = 0;
+    let femaleVoice = null;
+
+    // Load female voice
+    function loadVoices() {
+      const voices = speechSynthesis.getVoices();
+      femaleVoice = voices.find(voice =>
+        voice.name.toLowerCase().includes("female") ||
+        voice.name.toLowerCase().includes("zira") ||
+        voice.name.toLowerCase().includes("google us english") ||
+        voice.name.toLowerCase().includes("samantha") ||
+        voice.name.toLowerCase().includes("karen")
+      );
+    }
+
+    speechSynthesis.onvoiceschanged = loadVoices;
+
+    function speakText(text) {
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'en-US';
+      utter.pitch = 1.2;
+      utter.rate = 1;
+      if (femaleVoice) utter.voice = femaleVoice;
+      speechSynthesis.cancel();
+      speechSynthesis.speak(utter);
+    }
+
+    function appendMessage(text, sender) {
+      const chat = document.getElementById("chatBox");
+      const div = document.createElement("div");
+      div.className = `max-w-[80%] p-3 rounded-xl text-sm ${sender === 'user' 
+        ? 'bg-green-100 self-end text-right ml-auto' 
+        : 'bg-white border border-green-200 text-gray-800'}`;
+      div.innerText = text;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function startTherapy() {
+      const input = document.getElementById("userInput").value.trim();
+      if (input === "") {
+        alert("Please write something.");
+        return;
+      }
+
+      appendMessage(input, 'user');
+
+      document.getElementById("startSection").classList.add("hidden");
+      document.getElementById("chatSection").classList.remove("hidden");
+
+      setTimeout(() => {
+        const welcome = "Thank you for sharing. Let's talk about it.";
+        appendMessage(welcome, 'ai');
+        speakText(welcome);
+        showQuestion();
+      }, 1000);
+    }
+
+    function showQuestion() {
+      const q = questions[currentQ];
+      document.getElementById("questionBox").innerText = q.question;
+      document.getElementById("suggestionBox").classList.add("hidden");
+      document.getElementById("nextBtn").classList.add("hidden");
+
+      const optionsList = document.getElementById("optionsList");
+      optionsList.innerHTML = "";
+
+      q.options.forEach((opt, idx) => {
+        const li = document.createElement("li");
+        li.innerHTML = `
+          <button onclick="showSuggestion(${idx})"
+            class="w-full text-left p-3 bg-green-100 rounded-lg hover:bg-green-200 transition-all">
+            ${opt.text}
+          </button>`;
+        optionsList.appendChild(li);
+      });
+    }
+
+    function showSuggestion(idx) {
+      const q = questions[currentQ];
+      const selected = q.options[idx];
+
+      appendMessage(selected.text, 'user');
+
+      const suggestionBox = document.getElementById("suggestionBox");
+      suggestionBox.innerText = selected.suggestion;
+      suggestionBox.classList.remove("hidden");
+
+      appendMessage(selected.suggestion, 'ai');
+      speakText(selected.suggestion);
+
+      document.getElementById("nextBtn").classList.remove("hidden");
+    }
+
+    function nextQuestion() {
+      currentQ++;
+      if (currentQ >= questions.length) {
+        const farewell = "You've shared bravely. Please take care of yourself. 🌿";
+        appendMessage(farewell, 'ai');
+        speakText(farewell);
+
+        document.getElementById("questionBox").innerText = "Session Ended";
+        document.getElementById("optionsList").innerHTML = "";
+        document.getElementById("suggestionBox").classList.add("hidden");
+        document.getElementById("nextBtn").classList.add("hidden");
+        return;
+      }
+      showQuestion();
+    }
+  </script>
+</body>
+</html>
